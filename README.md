@@ -14,7 +14,7 @@ OP and the sentiment comments as well.
 
 ### How it works:
 
-PRAW (webscraper) -> Kafka Producer -> Flink (streaming) -> Kafka (streaming) -> React (webapp)
+PRAW (webscraper) -> Kafka Producer -> Flink (streaming) -> Kafka (consumer) -> React (webapp)
 
 ### To do/ plan:
 
