@@ -1,2 +1,20 @@
+/# Ignore build artifacts
+/dist
+/build
 /node_modules
+
+# Ignore log files
+*.log
+
+# Ignore configuration files
+.env
+/config.json
+
+# Ignore operating system files
+.DS_Store
+Thumbs.db
+
+# Ignore IDE files
+.vscode/
+.idea/node_modules
 /scraper/node_modules
