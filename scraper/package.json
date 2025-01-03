@@ -11,5 +11,9 @@
   "description": "",
   "dependencies": {
     "playwright": "^1.49.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.3",
+    "typescript": "^5.7.2"
   }
 }
