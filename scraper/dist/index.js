@@ -34,17 +34,39 @@ function getPostsInPage(page) {
         return postData; // Return the array of post data
     });
 }
-// async function getDataForPosts(posts: string[]) {
-//   let data = [];
-//   for (const post of posts) {
-//     let postData = await getPostData(post);
-//     data.push(postData);
-//   }
-// }
-// async function getPostData(post) {
-//   let postData = {};
-//   return postData;
-// }
+function getDataFromPosts(page, posts) {
+    return __awaiter(this, void 0, void 0, function* () {
+        console.log("getting data from posts");
+        let postsData = [];
+        for (let post of posts) {
+            console.log(`getting data from post ${post.id}: ${post.title}`);
+            yield page.goto(post.url);
+            // Get post text and upvotes
+            const sitetable = yield page.$("div.sitetable");
+            if (sitetable != null) {
+                const thing = yield sitetable.$(".thing");
+                const upvotes = yield (thing === null || thing === void 0 ? void 0 : thing.getAttribute("data-score"));
+                const no_of_comments = yield (thing === null || thing === void 0 ? void 0 : thing.getAttribute("data-comments-count"));
+                let text = yield sitetable
+                    .$("div.usertext-body")
+                    .then((element) => __awaiter(this, void 0, void 0, function* () { return yield (element === null || element === void 0 ? void 0 : element.textContent()); }))
+                    .catch((e) => {
+                    console.log(e);
+                    return "";
+                });
+                postsData.push({
+                    id: post.id,
+                    postId: post.id,
+                    post_text: text || "",
+                    comments: null,
+                    number_of_comments: parseInt(no_of_comments || "0"),
+                    number_of_upvotes: parseInt(upvotes || "0"),
+                });
+            }
+        }
+        return postsData;
+    });
+}
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         console.log("launching browser");
@@ -54,8 +76,11 @@ function main() {
         const context = yield browser.newContext();
         const page = yield context.newPage();
         yield page.goto("https://ns.reddit.com/r/wallstreetbets/search?sort=new&restrict_sr=on&q=flair%3ADD");
+        // get links to the posts from 24 hours ago
         let pagePosts = yield getPostsInPage(page);
-        console.log(pagePosts);
+        // go to each post and get the text and comments
+        let postsData = yield getDataFromPosts(page, pagePosts);
+        console.log(postsData);
         yield browser.close();
         console.log("closed browser");
     });
@@ -64,8 +89,5 @@ if (require.main === module) {
     main();
 }
 // Scraper Logic
-// go to r/wallstreetbets
-// get links to the posts from 24 hours ago
-// go to each post
 // get the text from the post
 // get the comments from the post

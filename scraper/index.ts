@@ -1,12 +1,6 @@
 import playwright from "playwright";
-
-type PostData = {
-  id: string;
-  title: string;
-  url: string;
-  author: string;
-  time: string;
-};
+import { postData, PostData } from "./types";
+import { PagePosts } from "./types";
 
 async function getPostsInPage(page: playwright.Page) {
   console.log("getting links of posts from page");
@@ -33,19 +27,39 @@ async function getPostsInPage(page: playwright.Page) {
   return postData; // Return the array of post data
 }
 
-// async function getDataForPosts(posts: string[]) {
-//   let data = [];
-//   for (const post of posts) {
-//     let postData = await getPostData(post);
-//     data.push(postData);
-//   }
-// }
+async function getDataFromPosts(page: playwright.Page, posts: PostData[]) {
+  console.log("getting data from posts");
+  let postsData: postData[] = [];
+  for (let post of posts) {
+    console.log(`getting data from post ${post.id}: ${post.title}`);
+    await page.goto(post.url);
 
-// async function getPostData(post) {
-//   let postData = {};
+    // Get post text and upvotes
+    const sitetable = await page.$("div.sitetable");
+    if (sitetable != null) {
+      const thing = await sitetable.$(".thing");
+      const upvotes = await thing?.getAttribute("data-score");
+      const no_of_comments = await thing?.getAttribute("data-comments-count");
+      let text = await sitetable
+        .$("div.usertext-body")
+        .then(async (element) => await element?.textContent())
+        .catch((e) => {
+          console.log(e);
+          return "";
+        });
 
-//   return postData;
-// }
+      postsData.push({
+        id: post.id,
+        postId: post.id,
+        post_text: text || "",
+        comments: null,
+        number_of_comments: parseInt(no_of_comments || "0"),
+        number_of_upvotes: parseInt(upvotes || "0"),
+      });
+    }
+  }
+  return postsData;
+}
 
 async function main() {
   console.log("launching browser");
@@ -58,9 +72,13 @@ async function main() {
     "https://ns.reddit.com/r/wallstreetbets/search?sort=new&restrict_sr=on&q=flair%3ADD"
   );
 
-  let pagePosts = await getPostsInPage(page);
+  // get links to the posts from 24 hours ago
+  let pagePosts: PagePosts = await getPostsInPage(page);
 
-  console.log(pagePosts);
+  // go to each post and get the text and comments
+  let postsData = await getDataFromPosts(page, pagePosts);
+
+  console.log(postsData);
 
   await browser.close();
 
@@ -71,8 +89,5 @@ if (require.main === module) {
 }
 
 // Scraper Logic
-// go to r/wallstreetbets
-// get links to the posts from 24 hours ago
-// go to each post
 // get the text from the post
 // get the comments from the post
