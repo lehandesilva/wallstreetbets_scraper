@@ -35,30 +35,40 @@ async function getDataFromPosts(page: playwright.Page, posts: PostData[]) {
     await page.goto(post.url);
 
     // Get post text and upvotes
-    const sitetable = await page.$("div.sitetable");
-    if (sitetable != null) {
-      const thing = await sitetable.$(".thing");
-      const upvotes = await thing?.getAttribute("data-score");
-      const no_of_comments = await thing?.getAttribute("data-comments-count");
-      let text = await sitetable
-        .$("div.usertext-body")
-        .then(async (element) => await element?.textContent())
-        .catch((e) => {
-          console.log(e);
-          return "";
-        });
+    const mainPost = page.locator("div#siteTable >> div.thing");
+    const upvotes = await mainPost.getAttribute("data-score");
+    const no_of_comments = await mainPost.getAttribute("data-comments-count");
+    const text = await mainPost.evaluate((element) => {
+      const textElement = element.querySelector("div.usertext-body");
+      return textElement?.textContent || "";
+    });
+    const id = await mainPost.getAttribute("id");
 
-      postsData.push({
-        id: post.id,
-        postId: post.id,
-        post_text: text || "",
-        comments: null,
-        number_of_comments: parseInt(no_of_comments || "0"),
-        number_of_upvotes: parseInt(upvotes || "0"),
-      });
-    }
+    const comments = await getCommentsFromPost(page);
+
+    postsData.push({
+      id: id || `thing_${post.id}`,
+      postId: post.id,
+      post_text: text || "",
+      comments: comments,
+      number_of_comments: parseInt(no_of_comments || "0"),
+      number_of_upvotes: parseInt(upvotes || "0"),
+    });
   }
+
   return postsData;
+}
+
+async function getCommentsFromPost(page: playwright.Page) {
+  // Get comments
+  const comments = page.locator("div.commentarea >> div.thing");
+  const commentsData = await comments.evaluateAll((elements) => {
+    return elements.map((element) => {
+      const textElement = element.querySelector("div.usertext-body");
+      return textElement?.textContent || "";
+    });
+  });
+  return commentsData;
 }
 
 async function main() {
@@ -78,8 +88,6 @@ async function main() {
   // go to each post and get the text and comments
   let postsData = await getDataFromPosts(page, pagePosts);
 
-  console.log(postsData);
-
   await browser.close();
 
   console.log("closed browser");
@@ -87,7 +95,3 @@ async function main() {
 if (require.main === module) {
   main();
 }
-
-// Scraper Logic
-// get the text from the post
-// get the comments from the post

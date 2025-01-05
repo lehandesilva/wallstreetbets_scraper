@@ -42,29 +42,39 @@ function getDataFromPosts(page, posts) {
             console.log(`getting data from post ${post.id}: ${post.title}`);
             yield page.goto(post.url);
             // Get post text and upvotes
-            const sitetable = yield page.$("div.sitetable");
-            if (sitetable != null) {
-                const thing = yield sitetable.$(".thing");
-                const upvotes = yield (thing === null || thing === void 0 ? void 0 : thing.getAttribute("data-score"));
-                const no_of_comments = yield (thing === null || thing === void 0 ? void 0 : thing.getAttribute("data-comments-count"));
-                let text = yield sitetable
-                    .$("div.usertext-body")
-                    .then((element) => __awaiter(this, void 0, void 0, function* () { return yield (element === null || element === void 0 ? void 0 : element.textContent()); }))
-                    .catch((e) => {
-                    console.log(e);
-                    return "";
-                });
-                postsData.push({
-                    id: post.id,
-                    postId: post.id,
-                    post_text: text || "",
-                    comments: null,
-                    number_of_comments: parseInt(no_of_comments || "0"),
-                    number_of_upvotes: parseInt(upvotes || "0"),
-                });
-            }
+            const mainPost = page.locator("div#siteTable >> div.thing");
+            const upvotes = yield mainPost.getAttribute("data-score");
+            const no_of_comments = yield mainPost.getAttribute("data-comments-count");
+            const text = yield mainPost.evaluate((element) => {
+                const textElement = element.querySelector("div.usertext-body");
+                return (textElement === null || textElement === void 0 ? void 0 : textElement.textContent) || "";
+            });
+            const id = yield mainPost.getAttribute("id");
+            const comments = yield getCommentsFromPost(page);
+            postsData.push({
+                id: id || `thing_${post.id}`,
+                postId: post.id,
+                post_text: text || "",
+                comments: comments,
+                number_of_comments: parseInt(no_of_comments || "0"),
+                number_of_upvotes: parseInt(upvotes || "0"),
+            });
         }
         return postsData;
+    });
+}
+function getCommentsFromPost(page) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // Get comments
+        const comments = page.locator("div.commentarea >> div.thing");
+        const commentsData = yield comments.evaluateAll((elements) => {
+            return elements.map((element) => {
+                const textElement = element.querySelector("div.usertext-body");
+                return (textElement === null || textElement === void 0 ? void 0 : textElement.textContent) || "";
+            });
+        });
+        console.log(commentsData);
+        return commentsData;
     });
 }
 function main() {
@@ -80,7 +90,6 @@ function main() {
         let pagePosts = yield getPostsInPage(page);
         // go to each post and get the text and comments
         let postsData = yield getDataFromPosts(page, pagePosts);
-        console.log(postsData);
         yield browser.close();
         console.log("closed browser");
     });
